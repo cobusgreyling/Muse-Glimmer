@@ -1,0 +1,14 @@
+services:
+  lab:
+    build: .
+    ports:
+      - "7870:7870"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=7870
+      # Optional live endpoint (uncomment + set):
+      # - OPENAI_BASE_URL=http://host.docker.internal:8080/v1
+      # - OPENAI_MODEL=meta-models/Muse-Glimmer-30B
+      # - OPENAI_API_KEY=
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

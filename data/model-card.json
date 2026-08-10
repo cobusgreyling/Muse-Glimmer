@@ -1,0 +1,70 @@
+{
+  "name": "Muse Glimmer",
+  "full_name": "Muse Glimmer 30B",
+  "org": "Meta Superintelligence Labs",
+  "released": "2026-08-10",
+  "license": "Apache 2.0",
+  "params_total_b": 30,
+  "architecture": {
+    "type": "dense multimodal",
+    "perception_encoder_b": 2,
+    "text_decoder_b": 28,
+    "layers": 52,
+    "attention_pattern": "SWA ×3 + Full (repeated 13×)",
+    "sliding_window": 2048,
+    "gqa": "16 query heads per KV head",
+    "speculative_drafter": "DFlash (optional)"
+  },
+  "capabilities": [
+    "End-to-end agentic task completion",
+    "Precise function calling across long workflows",
+    "Failure recovery (diagnose + retry on tool errors)",
+    "Controllable reasoning strength",
+    "Interleaved text + images + video frames",
+    "Multimodal tool calling",
+    "Local coding agents",
+    "100+ languages"
+  ],
+  "memory": {
+    "full_precision_gb": 55,
+    "approx_4bit_lm_gb": 18,
+    "practical_envelope_gb": [24, 32],
+    "notes": "4-bit quantization brings the LM under ~20 GB, leaving headroom for KV cache, perception encoder, and DFlash drafter on 24–32 GB devices."
+  },
+  "hub": {
+    "weights": "https://huggingface.co/meta-models/Muse-Glimmer-30B",
+    "gguf": "https://huggingface.co/meta-models/Muse-Glimmer-30B-GGUF",
+    "unsloth_gguf": "https://huggingface.co/unsloth/Muse-Glimmer-30B-GGUF",
+    "research_blog": "https://research.meta.ai/blog/introducing-muse-glimmer-open-agentic-model",
+    "hf_blog": "https://huggingface.co/blog/muse-glimmer",
+    "developer": "https://developer.meta.com/ai/models/muse-glimmer/"
+  },
+  "run_paths": [
+    "transformers (day-0)",
+    "llama.cpp / GGUF",
+    "vLLM (transformers backend)",
+    "MLX / ExecuTorch (coming)",
+    "Ollama / LM Studio / Unsloth",
+    "Together AI / Fireworks / OpenRouter",
+    "Hugging Face Inference Endpoints"
+  ],
+  "benchmarks": [
+    {"category": "General Agentic", "name": "MCP Atlas", "glimmer": 75.5, "gemma4_31b": 54.2, "qwen36_27b": 62.5, "higher_is_better": true},
+    {"category": "General Agentic", "name": "DeepSearch QA", "glimmer": 74.6, "gemma4_31b": 61.7, "qwen36_27b": 71.1, "higher_is_better": true},
+    {"category": "General Agentic", "name": "τ³-Banking", "glimmer": 23.5, "gemma4_31b": 15.1, "qwen36_27b": 16.7, "higher_is_better": true},
+    {"category": "General Agentic", "name": "WildClawBench", "glimmer": 47.6, "gemma4_31b": 37.6, "qwen36_27b": 43.2, "higher_is_better": true},
+    {"category": "General Agentic", "name": "GAIA2", "glimmer": 43.3, "gemma4_31b": 36.4, "qwen36_27b": 40.0, "higher_is_better": true},
+    {"category": "Agentic Coding", "name": "SWE-Bench Pro", "glimmer": 51.2, "gemma4_31b": 36.9, "qwen36_27b": 50.2, "higher_is_better": true},
+    {"category": "Agentic Coding", "name": "SWE-Bench Verified", "glimmer": 76.0, "gemma4_31b": 66.6, "qwen36_27b": 77.2, "higher_is_better": true},
+    {"category": "Agentic Coding", "name": "SciCode", "glimmer": 43.6, "gemma4_31b": 43.4, "qwen36_27b": 39.8, "higher_is_better": true},
+    {"category": "Multimodal", "name": "Charxiv Reasoning", "glimmer": 78.8, "gemma4_31b": 77.7, "qwen36_27b": 78.4, "higher_is_better": true},
+    {"category": "Reasoning", "name": "IFBench", "glimmer": 77.0, "gemma4_31b": 76.0, "qwen36_27b": 70.8, "higher_is_better": true},
+    {"category": "Reasoning", "name": "AIME 2026", "glimmer": 94.7, "gemma4_31b": 89.2, "qwen36_27b": 94.1, "higher_is_better": true},
+    {"category": "Reasoning", "name": "AA-LCR", "glimmer": 80.0, "gemma4_31b": 68.3, "qwen36_27b": 73.3, "higher_is_better": true}
+  ],
+  "comparators": {
+    "gemma4_31b": "Gemma4-31B Thinking Mode",
+    "qwen36_27b": "Qwen3.6-27B Thinking Mode"
+  },
+  "disclaimer": "Scores as published in Hugging Face / Meta launch materials (Aug 2026). Bold wins on their tables may differ when higher/lower is better for safety metrics not shown here."
+}

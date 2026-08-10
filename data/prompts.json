@@ -1,0 +1,28 @@
+{
+  "examples": [
+    {
+      "id": "local-privacy",
+      "label": "Privacy-first assistant",
+      "prompt": "Summarize the PDFs in ~/Documents/contracts without uploading anything. List obligations due in 30 days."
+    },
+    {
+      "id": "agent-code",
+      "label": "Coding agent",
+      "prompt": "Open the failing CI job, reproduce locally, fix the smallest patch, and open a PR description."
+    },
+    {
+      "id": "mm-screen",
+      "label": "Multimodal UI",
+      "prompt": "Look at this screenshot of our settings page and propose a cleaner information hierarchy."
+    },
+    {
+      "id": "tool-loop",
+      "label": "Long tool loop",
+      "prompt": "Using only local tools, inventory USB devices, find the slowest disk, and write a one-page ops note."
+    }
+  ],
+  "system_hints": {
+    "default": "You are Muse Glimmer running as a local agent. Prefer tools over guessing. If a tool fails, diagnose and retry. Keep private data on-device.",
+    "coding": "You are a local coding agent. Reproduce failures before patching. Prefer minimal diffs. Always re-run the failing test."
+  }
+}

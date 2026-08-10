@@ -1,0 +1,201 @@
+{
+  "scenarios": [
+    {
+      "id": "home-dashboard",
+      "title": "Home Assistant dashboard from one prompt",
+      "tagline": "Discover → query → build → deploy — end to end on device.",
+      "user_prompt": "Find my local Home Assistant, pull device status, and build a responsive dashboard I can open in the browser.",
+      "reasoning_strength": "high",
+      "highlight": "failure_recovery",
+      "steps": [
+        {
+          "role": "plan",
+          "text": "Goal: live local dashboard. Plan: (1) scan LAN for HA, (2) auth + list entities, (3) draft HTML/CSS/JS, (4) serve on localhost and verify."
+        },
+        {
+          "role": "tool_call",
+          "name": "network.scan",
+          "args": {"ports": [8123], "cidr": "192.168.1.0/24"},
+          "result": {"hosts": [{"ip": "192.168.1.42", "service": "home-assistant", "title": "Home Assistant"}]}
+        },
+        {
+          "role": "tool_call",
+          "name": "http.get",
+          "args": {"url": "http://192.168.1.42:8123/api/", "headers": {"Authorization": "Bearer ***"}},
+          "result": {"error": "401 Unauthorized", "hint": "token missing or expired"}
+        },
+        {
+          "role": "recover",
+          "text": "Auth failed. Checking for a long-lived token in ~/.homeassistant/ and env HA_TOKEN before retrying — not halting."
+        },
+        {
+          "role": "tool_call",
+          "name": "secrets.read",
+          "args": {"keys": ["HA_TOKEN", "~/.homeassistant/token"]},
+          "result": {"HA_TOKEN": "found"}
+        },
+        {
+          "role": "tool_call",
+          "name": "http.get",
+          "args": {"url": "http://192.168.1.42:8123/api/states", "headers": {"Authorization": "Bearer $HA_TOKEN"}},
+          "result": {
+            "entities": 48,
+            "sample": [
+              {"entity_id": "light.living_room", "state": "on"},
+              {"entity_id": "sensor.outdoor_temp", "state": "22.4"},
+              {"entity_id": "lock.front_door", "state": "locked"}
+            ]
+          }
+        },
+        {
+          "role": "tool_call",
+          "name": "fs.write",
+          "args": {"path": "./ha-dashboard/index.html", "bytes": 18420},
+          "result": {"ok": true}
+        },
+        {
+          "role": "tool_call",
+          "name": "shell.run",
+          "args": {"cmd": "python -m http.server 8765 --directory ./ha-dashboard"},
+          "result": {"pid": 44102, "url": "http://127.0.0.1:8765"}
+        },
+        {
+          "role": "tool_call",
+          "name": "http.get",
+          "args": {"url": "http://127.0.0.1:8765/"},
+          "result": {"status": 200, "title": "Home Dashboard"}
+        },
+        {
+          "role": "final",
+          "text": "Dashboard is live at http://127.0.0.1:8765 — 48 entities, recovered from a 401 by loading HA_TOKEN, verified with a 200 on the local server."
+        }
+      ],
+      "metrics": {
+        "tool_calls": 7,
+        "recoveries": 1,
+        "wall_s": 42.6,
+        "on_device": true
+      }
+    },
+    {
+      "id": "coding-fix",
+      "title": "Local coding agent with schema-true tools",
+      "tagline": "Reproduce a failing test, patch, re-run — without leaving the machine.",
+      "user_prompt": "tests/test_pricing.py is red. Fix it and prove green.",
+      "reasoning_strength": "high",
+      "highlight": "function_calling",
+      "steps": [
+        {
+          "role": "plan",
+          "text": "Reproduce failure, isolate root cause, apply minimal patch, re-run targeted tests."
+        },
+        {
+          "role": "tool_call",
+          "name": "shell.run",
+          "args": {"cmd": "pytest tests/test_pricing.py -q"},
+          "result": {"exit": 1, "summary": "1 failed — AssertionError: expected 19.99 got 19.9900000002"}
+        },
+        {
+          "role": "tool_call",
+          "name": "fs.read",
+          "args": {"path": "src/pricing.py", "lines": "40-72"},
+          "result": {"snippet": "return subtotal * (1 - discount)  # float drift"}
+        },
+        {
+          "role": "tool_call",
+          "name": "fs.edit",
+          "args": {
+            "path": "src/pricing.py",
+            "patch": "use Decimal quantize to 2 places before return"
+          },
+          "result": {"ok": true, "hunks": 1}
+        },
+        {
+          "role": "tool_call",
+          "name": "shell.run",
+          "args": {"cmd": "pytest tests/test_pricing.py -q"},
+          "result": {"exit": 0, "summary": "3 passed"}
+        },
+        {
+          "role": "final",
+          "text": "Root cause: binary float drift on discount math. Switched to Decimal with 2-place quantize. `tests/test_pricing.py` is green (3 passed)."
+        }
+      ],
+      "metrics": {
+        "tool_calls": 4,
+        "recoveries": 0,
+        "wall_s": 18.2,
+        "on_device": true
+      }
+    },
+    {
+      "id": "multimodal-tool",
+      "title": "Image → tool call → actionable answer",
+      "tagline": "See the city, call weather, recommend clothes — multimodal agents.",
+      "user_prompt": "I'm going to the city in this photo. What should I wear?",
+      "reasoning_strength": "medium",
+      "highlight": "multimodal",
+      "image_hint": "San Francisco skyline / Golden Gate vibe",
+      "steps": [
+        {
+          "role": "plan",
+          "text": "Identify location from image, fetch weather for that city, map conditions to clothing advice."
+        },
+        {
+          "role": "observe",
+          "text": "Image shows San Francisco (bridge + downtown skyline). City = San Francisco."
+        },
+        {
+          "role": "tool_call",
+          "name": "weather.get",
+          "args": {"city": "San Francisco"},
+          "result": {"temp_c": 14, "wind_kmh": 28, "conditions": "foggy, cool marine layer"}
+        },
+        {
+          "role": "final",
+          "text": "San Francisco is ~14°C with fog and 28 km/h wind. Wear layers: light fleece or sweater, windbreaker, closed shoes. Skip the short sleeves until afternoon sun breaks through."
+        }
+      ],
+      "metrics": {
+        "tool_calls": 1,
+        "recoveries": 0,
+        "wall_s": 6.4,
+        "on_device": true
+      }
+    },
+    {
+      "id": "reasoning-ab",
+      "title": "Controllable reasoning: low vs high",
+      "tagline": "Same prompt, two effort knobs — quality/speed tradeoff on device.",
+      "user_prompt": "Should we shard this 2M-row Postgres table by tenant_id or by created_at for a multi-tenant SaaS with heavy per-tenant analytics?",
+      "reasoning_strength": "compare",
+      "highlight": "reasoning_control",
+      "variants": {
+        "low": {
+          "wall_s": 1.8,
+          "text": "Shard by tenant_id. Analytics are per-tenant; co-locating a tenant's rows avoids cross-shard scans. Use hash sharding and keep a small tenants routing table."
+        },
+        "high": {
+          "wall_s": 7.1,
+          "text": "Prefer hash-sharding on tenant_id as the default for multi-tenant SaaS with per-tenant analytics: locality keeps most queries single-shard, and tenant lifecycle (export/delete) is simpler.\n\nCaveats before you commit:\n1. Hot tenants — if one customer is 20%+ of load, plan tenant isolation (dedicated shard / vertical split) rather than time-based sharding.\n2. created_at range partitions can help pure time-series retention, but cross-tenant analytics still fan out; time is a secondary partition key, not the primary shard key.\n3. Operationally: consistent hashing + a tenants→shard map, online reshard playbook, and per-shard connection pools.\n\nRecommendation: primary shard key = tenant_id (hash); optional BRIN/range on created_at inside each shard for retention and time filters."
+        }
+      },
+      "steps": [
+        {
+          "role": "plan",
+          "text": "Compare low vs high reasoning_strength on the same architecture question."
+        },
+        {
+          "role": "final",
+          "text": "Low is decisive and cheap. High adds hot-tenant, dual-key, and ops caveats — same core answer, more production-safe."
+        }
+      ],
+      "metrics": {
+        "tool_calls": 0,
+        "recoveries": 0,
+        "wall_s": 7.1,
+        "on_device": true
+      }
+    }
+  ]
+}

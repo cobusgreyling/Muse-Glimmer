@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Muse Glimmer — Local Agentic Lab</title>
+  <meta name="description" content="Interactive lab for Meta Muse Glimmer: open 30B agentic model that runs on your device." />
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <header class="hero">
+    <img src="/static/header.jpg" alt="" class="banner" onerror="this.style.display='none'" />
+    <div class="hero-copy">
+      <p class="eyebrow">Meta Superintelligence Labs · Open Weights · Apache 2.0</p>
+      <h1>Muse Glimmer</h1>
+      <p class="sub">
+        An open <strong>agentic</strong> model that runs <strong>on your device</strong> —
+        30B dense multimodal, quantized under ~20&nbsp;GB, trained to finish multi-step work
+        with tools, recovery, and controllable reasoning.
+      </p>
+      <div class="badges">
+        <span class="badge">30B dense · 2B PE + 28B decoder</span>
+        <span class="badge">~4-bit → &lt;20&nbsp;GB LM</span>
+        <span class="badge">DFlash speculative decode</span>
+        <span class="badge" id="liveBadge">checking…</span>
+      </div>
+      <div class="hero-links">
+        <a class="btn primary" href="#lab">Open the lab</a>
+        <a class="btn ghost" href="https://huggingface.co/meta-models/Muse-Glimmer-30B" target="_blank" rel="noopener">Weights</a>
+        <a class="btn ghost" href="https://research.meta.ai/blog/introducing-muse-glimmer-open-agentic-model" target="_blank" rel="noopener">Research blog</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Pitch strip -->
+    <section class="strip">
+      <div class="stat">
+        <div class="stat-n">30B</div>
+        <div class="stat-l">params, dense</div>
+      </div>
+      <div class="stat">
+        <div class="stat-n">Apache 2.0</div>
+        <div class="stat-l">permissive weights</div>
+      </div>
+      <div class="stat">
+        <div class="stat-n">~18&nbsp;GB</div>
+        <div class="stat-l">4-bit local envelope</div>
+      </div>
+      <div class="stat">
+        <div class="stat-n">100+</div>
+        <div class="stat-l">languages</div>
+      </div>
+    </section>
+
+    <section class="why panel" id="why">
+      <h2>Why this model exists</h2>
+      <p class="lede">
+        Cloud agents are powerful — and expensive, laggy across the ocean, and a non-starter when
+        the data cannot leave the machine. <em>Always-on local agents</em> need a different design point:
+        enough intelligence for multi-step tool work, small enough for a Mac or single consumer GPU,
+        trained to recover when tools fail instead of freezing mid-task.
+      </p>
+      <div class="pill-grid">
+        <article class="pill">
+          <h3>On-device by design</h3>
+          <p>Quantized under ~20&nbsp;GB with headroom for KV, vision, and a speculative drafter on 24–32&nbsp;GB boxes.</p>
+        </article>
+        <article class="pill">
+          <h3>Agent loops, not chat toys</h3>
+          <p>Function calling, long-horizon plans, and deliberate failure recovery as a training target.</p>
+        </article>
+        <article class="pill">
+          <h3>Multimodal perception</h3>
+          <p>2B Perception Encoder for interleaved images (and video frames) plus text — see, then act.</p>
+        </article>
+        <article class="pill">
+          <h3>Speed knobs</h3>
+          <p>Controllable reasoning strength + optional DFlash block drafter for structured / coding decode.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- Lab -->
+    <section class="lab panel" id="lab">
+      <div class="lab-head">
+        <div>
+          <h2>Interactive lab</h2>
+          <p class="muted">Offline-first. Replay agent scenarios, compare benchmarks, size memory — no GPU required for the demo.</p>
+        </div>
+        <div class="tabs" role="tablist">
+          <button type="button" class="tab active" data-tab="agents" role="tab" aria-selected="true">Agent loops</button>
+          <button type="button" class="tab" data-tab="bench" role="tab">Benchmarks</button>
+          <button type="button" class="tab" data-tab="memory" role="tab">Memory</button>
+          <button type="button" class="tab" data-tab="chat" role="tab">Live chat</button>
+        </div>
+      </div>
+
+      <!-- Agents tab -->
+      <div class="tab-panel active" id="panel-agents">
+        <div class="split">
+          <aside class="scenario-list" id="scenarioList" aria-label="Scenarios"></aside>
+          <div class="stage">
+            <div class="stage-meta">
+              <h3 id="scTitle">Select a scenario</h3>
+              <p id="scTagline" class="muted">Watch a multi-step local agent complete work with tools.</p>
+              <div class="chip-row" id="scChips"></div>
+            </div>
+            <div class="prompt-box">
+              <span class="label">User</span>
+              <p id="scPrompt">—</p>
+            </div>
+            <div class="timeline" id="timeline" aria-live="polite"></div>
+            <div class="stage-actions">
+              <button type="button" id="playBtn" class="btn primary" disabled>▶ Play scenario</button>
+              <button type="button" id="stepBtn" class="btn ghost" disabled>Step</button>
+              <button type="button" id="resetBtn" class="btn ghost" disabled>Reset</button>
+              <label class="speed">
+                Speed
+                <select id="playSpeed">
+                  <option value="0.55">Fast</option>
+                  <option value="1" selected>Normal</option>
+                  <option value="1.6">Slow</option>
+                </select>
+              </label>
+            </div>
+            <div class="metrics-bar" id="scMetrics" hidden></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Benchmarks tab -->
+      <div class="tab-panel" id="panel-bench" hidden>
+        <p class="muted tight">
+          Published scores (high reasoning) vs same-size thinking models. Source:
+          <a href="https://huggingface.co/blog/muse-glimmer" target="_blank" rel="noopener">Hugging Face launch blog</a>.
+        </p>
+        <div class="filters">
+          <button type="button" class="chip active" data-cat="all">All</button>
+          <button type="button" class="chip" data-cat="General Agentic">Agentic</button>
+          <button type="button" class="chip" data-cat="Agentic Coding">Coding</button>
+          <button type="button" class="chip" data-cat="Multimodal">Multimodal</button>
+          <button type="button" class="chip" data-cat="Reasoning">Reasoning</button>
+        </div>
+        <div class="bench-legend">
+          <span><i class="swatch glimmer"></i> Muse Glimmer-30B</span>
+          <span><i class="swatch gemma"></i> Gemma4-31B</span>
+          <span><i class="swatch qwen"></i> Qwen3.6-27B</span>
+        </div>
+        <div id="benchList" class="bench-list"></div>
+        <p class="fineprint" id="benchDisclaimer"></p>
+      </div>
+
+      <!-- Memory tab -->
+      <div class="tab-panel" id="panel-memory" hidden>
+        <div class="memory-grid">
+          <div class="memory-controls">
+            <label>
+              Device RAM / VRAM (GB)
+              <input type="range" id="ramRange" min="8" max="96" step="1" value="32" />
+              <output id="ramOut">32</output>
+            </label>
+            <label>
+              Quantization (bits)
+              <input type="range" id="bitsRange" min="2" max="16" step="0.5" value="4" />
+              <output id="bitsOut">4</output>
+            </label>
+            <label>
+              Context (tokens)
+              <input type="range" id="ctxRange" min="2048" max="32768" step="2048" value="8192" />
+              <output id="ctxOut">8192</output>
+            </label>
+            <label class="check"><input type="checkbox" id="visionChk" checked /> Perception encoder (~2B vision)</label>
+            <label class="check"><input type="checkbox" id="drafterChk" checked /> DFlash speculative drafter</label>
+            <button type="button" id="footprintBtn" class="btn primary">Estimate footprint</button>
+          </div>
+          <div class="memory-result">
+            <div class="tier" id="memTier">—</div>
+            <p id="memNarrative" class="muted">Tune the sliders to see whether a local always-on agent fits.</p>
+            <div class="stack-bars" id="memBars"></div>
+            <ul class="mem-facts">
+              <li>Full precision 30B ≈ <strong>55+&nbsp;GB</strong> — out of reach for most laptops.</li>
+              <li>~4-bit brings the LM under <strong>~20&nbsp;GB</strong> with minimal agentic degradation (per Meta).</li>
+              <li>Leave room for KV cache + tools + OS on a <strong>24–32&nbsp;GB</strong> envelope.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live chat tab -->
+      <div class="tab-panel" id="panel-chat" hidden>
+        <div class="chat-layout">
+          <div class="chat-log" id="chatLog">
+            <div class="chat-empty">
+              <p><strong>Optional live mode.</strong> Point this lab at any OpenAI-compatible server running Muse Glimmer.</p>
+              <pre class="code"># llama.cpp example
+llama serve -hf meta-models/Muse-Glimmer-30B-GGUF
+# then in .env:
+OPENAI_BASE_URL=http://127.0.0.1:8080/v1
+OPENAI_MODEL=…</pre>
+              <p class="muted">Without a live endpoint, use <strong>Agent loops</strong> offline.</p>
+            </div>
+          </div>
+          <div class="chat-compose">
+            <div class="compose-row">
+              <label>
+                Reasoning
+                <select id="reasonSel">
+                  <option value="low">low</option>
+                  <option value="medium" selected>medium</option>
+                  <option value="high">high</option>
+                </select>
+              </label>
+              <button type="button" id="clearChatBtn" class="btn ghost">Clear</button>
+            </div>
+            <textarea id="chatInput" rows="3" placeholder="Ask the local agent…"></textarea>
+            <button type="button" id="sendChatBtn" class="btn primary">Send</button>
+            <p class="fineprint" id="chatStatus">Checking live config…</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Run paths -->
+    <section class="panel" id="run">
+      <h2>Run it for real</h2>
+      <div class="run-grid">
+        <article>
+          <h3>Weights</h3>
+          <p><a href="https://huggingface.co/meta-models/Muse-Glimmer-30B" target="_blank" rel="noopener">meta-models/Muse-Glimmer-30B</a></p>
+          <p class="muted">GGUF: <a href="https://huggingface.co/meta-models/Muse-Glimmer-30B-GGUF" target="_blank" rel="noopener">meta GGUF</a> · <a href="https://huggingface.co/unsloth/Muse-Glimmer-30B-GGUF" target="_blank" rel="noopener">Unsloth</a></p>
+        </article>
+        <article>
+          <h3>Local</h3>
+          <p>transformers · llama.cpp · MLX / ExecuTorch (rolling) · Ollama / LM Studio / Unsloth</p>
+        </article>
+        <article>
+          <h3>Serve</h3>
+          <p>vLLM · SGLang · Hugging Face Inference Endpoints · Together · Fireworks · OpenRouter</p>
+        </article>
+        <article>
+          <h3>Agents</h3>
+          <p>Works with OpenClaw and other agentic scaffolds — OpenAI-compatible <code>/v1</code> is the glue.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel cite">
+      <h2>Sources</h2>
+      <ul>
+        <li><a href="https://research.meta.ai/blog/introducing-muse-glimmer-open-agentic-model" target="_blank" rel="noopener">Meta research: Introducing Muse Glimmer</a></li>
+        <li><a href="https://huggingface.co/blog/muse-glimmer" target="_blank" rel="noopener">Hugging Face: day-0 guide &amp; benchmarks</a></li>
+        <li><a href="https://huggingface.co/meta-models/Muse-Glimmer-30B" target="_blank" rel="noopener">Model card on the Hub</a></li>
+      </ul>
+      <p class="fineprint">
+        This lab is an independent educational companion — not an official Meta product.
+        Scenario transcripts are illustrative fixtures; live generation requires your own weights or endpoint.
+      </p>
+    </section>
+  </main>
+
+  <footer>
+    <span>Muse Glimmer Lab</span>
+    <span class="dot">·</span>
+    <a href="/api/health">API health</a>
+    <span class="dot">·</span>
+    <span>Offline-first · optional live endpoint</span>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
