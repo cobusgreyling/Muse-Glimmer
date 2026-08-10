@@ -59,15 +59,19 @@
     try {
       const h = await api("/api/health");
       const badge = $("#liveBadge");
+      badge.classList.remove("ok", "warn");
       if (h.live_configured) {
-        badge.textContent = "live endpoint ready";
+        badge.textContent = `live · ${h.live.provider || "endpoint"}`;
         badge.classList.add("ok");
-        $("#chatStatus").textContent = `Live → ${h.live.base_url} · model ${h.live.model}`;
+        $("#chatStatus").textContent = `Configured → ${h.live.base_url} · model ${h.live.model}`;
+        $("#probeResult").textContent = "Configured — click Probe endpoint to verify.";
       } else {
         badge.textContent = "offline demo";
         badge.classList.add("warn");
         $("#chatStatus").textContent =
-          "No OPENAI_BASE_URL — Agent loops work offline. Configure .env for live chat.";
+          "No OPENAI_BASE_URL — Agent loops work offline. See docs/LIVE.md.";
+        $("#probeResult").textContent =
+          "Not configured. ./scripts/configure-live.sh llamacpp  (or hf-endpoint)";
       }
     } catch {
       $("#liveBadge").textContent = "server offline?";
@@ -349,6 +353,8 @@
   /* ── Live chat ────────────────────────────────────────── */
   function initChat() {
     $("#sendChatBtn").addEventListener("click", sendChat);
+    $("#probeBtn").addEventListener("click", probeLive);
+    $("#refreshModelsBtn").addEventListener("click", refreshModels);
     $("#chatInput").addEventListener("keydown", (e) => {
       if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) sendChat();
     });
@@ -359,6 +365,70 @@
     });
   }
 
+  function fillModels(models, selected) {
+    const sel = $("#modelSel");
+    const current = selected || sel.value || "";
+    sel.innerHTML = '<option value="">auto</option>';
+    (models || []).forEach((id) => {
+      const mid = typeof id === "string" ? id : id.id;
+      if (!mid) return;
+      const opt = document.createElement("option");
+      opt.value = mid;
+      opt.textContent = mid;
+      if (mid === current) opt.selected = true;
+      sel.appendChild(opt);
+    });
+  }
+
+  async function refreshModels() {
+    $("#probeResult").textContent = "Loading models…";
+    try {
+      const data = await api("/api/live/models");
+      fillModels(
+        data.models.map((m) => m.id),
+        data.resolved_default
+      );
+      $("#probeResult").textContent = `Models: ${data.models.length} · default ${data.resolved_default}`;
+      $("#chatStatus").textContent = `Live → ${data.base_url}`;
+    } catch (err) {
+      const d = err.detail;
+      $("#probeResult").textContent =
+        typeof d === "object"
+          ? `${d.title || "Error"}: ${d.fix || d.message || ""}`
+          : err.message;
+    }
+  }
+
+  async function probeLive() {
+    $("#probeBtn").disabled = true;
+    $("#probeResult").textContent = "Probing…";
+    try {
+      const data = await api("/api/live/probe");
+      if (data.ok) {
+        fillModels(data.models, data.model);
+        $("#probeResult").textContent = `OK · ${data.model} · models ${data.latency_models_s}s · chat ${data.latency_chat_s}s · “${(data.chat_preview || "").slice(0, 40)}”`;
+        $("#chatStatus").textContent = `Live ready · ${data.provider} · ${data.base_url}`;
+        const badge = $("#liveBadge");
+        badge.textContent = "live verified";
+        badge.classList.remove("warn");
+        badge.classList.add("ok");
+      } else {
+        $("#probeResult").textContent = [
+          data.title || "Probe failed",
+          data.error || data.message || "",
+          data.fix || "",
+        ]
+          .filter(Boolean)
+          .join(" — ");
+        $("#chatStatus").textContent = data.fix || "Probe failed — see docs/LIVE.md";
+      }
+    } catch (err) {
+      $("#probeResult").textContent = err.message;
+    } finally {
+      $("#probeBtn").disabled = false;
+    }
+  }
+
   async function sendChat() {
     const text = $("#chatInput").value.trim();
     if (!text) return;
@@ -367,17 +437,20 @@
     renderChat();
     $("#chatStatus").textContent = "Generating…";
     $("#sendChatBtn").disabled = true;
+    const body = {
+      messages: state.chat,
+      reasoning_strength: $("#reasonSel").value,
+    };
+    const model = $("#modelSel").value;
+    if (model) body.model = model;
     try {
       const res = await api("/api/chat", {
         method: "POST",
-        body: JSON.stringify({
-          messages: state.chat,
-          reasoning_strength: $("#reasonSel").value,
-        }),
+        body: JSON.stringify(body),
       });
       state.chat.push({ role: "assistant", content: res.content });
       renderChat();
-      $("#chatStatus").textContent = `Done in ${res.latency_s}s · ${res.model}`;
+      $("#chatStatus").textContent = `Done in ${res.latency_s}s · ${res.model}${res.provider ? " · " + res.provider : ""}`;
     } catch (err) {
       const d = err.detail;
       const msg =
@@ -386,7 +459,7 @@
           : err.message;
       state.chat.push({ role: "assistant", content: `⚠ ${msg}` });
       renderChat();
-      $("#chatStatus").textContent = "Live chat failed — check .env endpoint.";
+      $("#chatStatus").textContent = "Live chat failed — Probe endpoint, see docs/LIVE.md";
     } finally {
       $("#sendChatBtn").disabled = false;
     }

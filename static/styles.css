@@ -664,6 +664,41 @@ select {
 
 .mem-facts strong { color: var(--text); }
 
+/* Live setup */
+.live-setup {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+  padding: 0.9rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.live-setup-copy {
+  font-size: 0.92rem;
+  margin-bottom: 0.55rem;
+  color: var(--muted);
+}
+
+.live-setup-copy strong { color: var(--text); }
+
+.live-cmds pre.code {
+  margin: 0 0 0.75rem;
+  max-height: 160px;
+}
+
+.live-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+#probeResult {
+  flex: 1;
+  min-width: 200px;
+  color: var(--muted);
+}
+
 /* Chat */
 .chat-layout {
   display: grid;

@@ -68,22 +68,33 @@ docker compose up --build
 
 No GPU. No API key. Scenario playback, benchmarks, and memory sizing work **offline**.
 
-### Optional live chat
+### Optional live chat (llama.cpp / Hugging Face)
 
-Point the lab at any OpenAI-compatible server (llama.cpp, HF Endpoints, Together, OpenRouter, …):
+Full guide: **[docs/LIVE.md](docs/LIVE.md)** · Publish checklist: **[PUBLISH.md](PUBLISH.md)**
 
-```bash
-cp .env.example .env
-# OPENAI_BASE_URL=http://127.0.0.1:8080/v1
-# OPENAI_MODEL=…   # exact id from /v1/models
-# OPENAI_API_KEY=… # if required
-```
-
-Example local serve (when GGUF + llama.cpp are installed):
+**A) On-device with llama.cpp**
 
 ```bash
-llama serve -hf meta-models/Muse-Glimmer-30B-GGUF
+# Terminal 1 — serve GGUF (needs llama.cpp installed)
+./scripts/serve-llamacpp.sh
+
+# Terminal 2 — wire lab + run
+./scripts/configure-live.sh llamacpp
+./run.sh
+# → Live chat tab → Probe endpoint → Send
 ```
+
+**B) Hugging Face Inference Endpoint**
+
+```bash
+export HF_ENDPOINT_URL="https://XXXX.region.cloud.endpoints.huggingface.cloud"
+export HF_TOKEN="hf_…"
+./scripts/configure-live.sh hf-endpoint
+./scripts/probe-live.sh   # lab must be running for full probe
+./run.sh
+```
+
+Or hand-edit `.env` (see [`.env.example`](.env.example)). Leave `OPENAI_MODEL` empty to auto-pick from `GET /v1/models`.
 
 ---
 
@@ -154,6 +165,8 @@ Details and nuance: **[BLOG.md](BLOG.md)**.
 | `GET` | `/api/benchmarks` | Published comparison rows |
 | `GET` | `/api/prompts` | Example prompts |
 | `POST` | `/api/footprint` | Memory envelope estimate |
+| `GET` | `/api/live/probe` | Reachability + models + tiny completion |
+| `GET` | `/api/live/models` | List models from configured endpoint |
 | `POST` | `/api/chat` | Live OpenAI-compatible chat (optional) |
 
 ---
@@ -161,10 +174,16 @@ Details and nuance: **[BLOG.md](BLOG.md)**.
 ## Project layout
 
 ```text
-muse-glimmer/
+Muse-Glimmer/
 ├── README.md
 ├── BLOG.md                 # Long-form intro article
+├── PUBLISH.md              # Standalone repo publish checklist
+├── docs/LIVE.md            # llama.cpp + HF live wiring
 ├── app.py                  # FastAPI lab
+├── scripts/
+│   ├── configure-live.sh   # .env presets (llamacpp | hf-endpoint | openrouter)
+│   ├── serve-llamacpp.sh   # start llama OpenAI server
+│   └── probe-live.sh       # health-check live endpoint
 ├── requirements.txt
 ├── run.sh
 ├── .env.example

@@ -189,20 +189,43 @@
 
       <!-- Live chat tab -->
       <div class="tab-panel" id="panel-chat" hidden>
+        <div class="live-setup" id="liveSetup">
+          <div class="live-setup-copy">
+            <strong>Live Muse Glimmer</strong> via any OpenAI-compatible endpoint
+            (<a href="https://github.com/cobusgreyling/Muse-Glimmer/blob/main/docs/LIVE.md" target="_blank" rel="noopener">docs/LIVE.md</a>).
+          </div>
+          <div class="live-cmds">
+            <pre class="code"># A) On-device llama.cpp
+./scripts/serve-llamacpp.sh
+./scripts/configure-live.sh llamacpp
+./run.sh
+
+# B) Hugging Face Inference Endpoint
+export HF_ENDPOINT_URL="https://XXXX.endpoints.huggingface.cloud"
+export HF_TOKEN="hf_…"
+./scripts/configure-live.sh hf-endpoint</pre>
+          </div>
+          <div class="live-actions">
+            <button type="button" id="probeBtn" class="btn primary">Probe endpoint</button>
+            <button type="button" id="refreshModelsBtn" class="btn ghost">Refresh models</button>
+            <span class="fineprint" id="probeResult">Not probed yet.</span>
+          </div>
+        </div>
         <div class="chat-layout">
           <div class="chat-log" id="chatLog">
             <div class="chat-empty">
-              <p><strong>Optional live mode.</strong> Point this lab at any OpenAI-compatible server running Muse Glimmer.</p>
-              <pre class="code"># llama.cpp example
-llama serve -hf meta-models/Muse-Glimmer-30B-GGUF
-# then in .env:
-OPENAI_BASE_URL=http://127.0.0.1:8080/v1
-OPENAI_MODEL=…</pre>
-              <p class="muted">Without a live endpoint, use <strong>Agent loops</strong> offline.</p>
+              <p><strong>Optional live mode.</strong> Offline demos stay on the other tabs.</p>
+              <p class="muted">Probe must be green before chat. Model id auto-picks from <code>/v1/models</code> when empty.</p>
             </div>
           </div>
           <div class="chat-compose">
             <div class="compose-row">
+              <label>
+                Model
+                <select id="modelSel">
+                  <option value="">auto</option>
+                </select>
+              </label>
               <label>
                 Reasoning
                 <select id="reasonSel">
@@ -213,7 +236,7 @@ OPENAI_MODEL=…</pre>
               </label>
               <button type="button" id="clearChatBtn" class="btn ghost">Clear</button>
             </div>
-            <textarea id="chatInput" rows="3" placeholder="Ask the local agent…"></textarea>
+            <textarea id="chatInput" rows="3" placeholder="Ask Muse Glimmer…"></textarea>
             <button type="button" id="sendChatBtn" class="btn primary">Send</button>
             <p class="fineprint" id="chatStatus">Checking live config…</p>
           </div>
